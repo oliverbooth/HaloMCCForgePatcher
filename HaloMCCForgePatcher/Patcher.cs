@@ -5,17 +5,12 @@ namespace HaloMCCForgePatcher
     #region Using Directives
 
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
     using System.IO;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    using Gameloop.Vdf;
-    using Gameloop.Vdf.JsonConverter;
-    using Microsoft.Win32;
-    using Newtonsoft.Json.Linq;
-    using static System.Windows.Forms.MessageBoxButtons;
-    using static System.Windows.Forms.MessageBoxIcon;
+    using Helpers;
+    using Models;
 
     #endregion
 
@@ -23,7 +18,15 @@ namespace HaloMCCForgePatcher
     {
         #region Fields
 
-        private const uint HaloAppId = 976730u;
+        /// <summary>
+        /// The filename of the PAK file to patch.
+        /// </summary>
+        public const string PakFileName = @"MCC-WindowsNoEditor.pak";
+
+        /// <summary>
+        /// The store app ID for Halo: The Master Chief Collection.
+        /// </summary>
+        public const uint HaloAppId = 976730u;
 
         #endregion
 
@@ -34,108 +37,129 @@ namespace HaloMCCForgePatcher
         /// </summary>
         public async Task RunAsync()
         {
-            char   dirChar = Path.DirectorySeparatorChar;
-            string steam   = GetSteamInstallPath();
-            string useDir  = steam;
-
-            if (!File.Exists(GetPotentialManifestFile(GetSteamAppsFolder(GetSteamInstallPath()))))
+            Steam steam = Steam.GetSteamInstallation();
+            if (steam.IsInstalled)
             {
-                string libraryFoldersFile = $"{steam}{dirChar}steamapps{dirChar}libraryfolders.vdf";
-                string contents;
+                bool isHaloInstalled = await steam.IsAppInstalledAsync(HaloAppId)
+                                                  .ConfigureAwait(false);
 
-                using (StreamReader streamReader = new StreamReader(libraryFoldersFile))
+                if (isHaloInstalled)
                 {
-                    contents = await streamReader.ReadToEndAsync().ConfigureAwait(false);
-                }
-
-                JToken       json      = VdfConvert.Deserialize(contents).Value.ToJson();
-                List<string> checkDirs = new List<string>();
-
-                for (int i = 1;; i++)
-                {
-                    JToken key = json[i.ToString()];
-                    if (key is null)
-                    {
-                        break;
-                    }
-
-                    checkDirs.Add(key.Value<string>());
-                }
-
-                foreach (string checkDir in checkDirs)
-                {
-                    if (!File.Exists(GetPotentialManifestFile(GetSteamAppsFolder(checkDir))))
-                    {
-                        continue;
-                    }
-
-                    useDir = checkDir;
-                    break;
-                }
-            }
-
-            string haloInstallPath = GetPotentialInstallDirectory(GetSteamAppsFolder(useDir));
-            if (!Directory.Exists(haloInstallPath))
-            {
-                MessageBox.Show("Halo: The Master Chief Collection could not be found in your Steam library.\n\n" +
-                                "Please make sure you have the game installed before running the patcher.",
-                    "Patcher Error",
-                    OK, Error);
-
-                Environment.Exit(0);
-            }
-
-            if (!File.Exists(GetPakFile(haloInstallPath)))
-            {
-                MessageBox.Show("Halo: The Master Chief Collection is installed, but appears to be corrupt.\n\n" +
-                                "Please run Steam's integrity verification, then run this patcher again.",
-                    "Patcher Error",
-                    OK, Error);
-
-                Environment.Exit(0);
-            }
-
-            try
-            {
-                await using Stream stream = File.Open(GetPakFile(haloInstallPath), FileMode.Open);
-
-                bool a = PatchByte(stream, 0x1E302110);
-                bool b = PatchByte(stream, 0x1E2F52D0);
-
-                stream.Close();
-
-                if (a || b)
-                {
-                    MessageBox.Show("Patch successful!", "Done", OK, Information);
+                    SteamApp haloApp = await steam.GetAppAsync(HaloAppId).ConfigureAwait(false);
+                    await this.PatchSteamVersionAsync(haloApp).ConfigureAwait(false);
                 }
                 else
                 {
-                    MessageBox.Show("Game is already patched!", "Done", OK, Information);
+                    MsgBoxHelpers.Error("Halo is not currently installed via Steam.");
+                    await this.ConfirmManualPatchAsync().ConfigureAwait(false);
                 }
             }
-            catch (IOException)
+            else
             {
-                MessageBox.Show("The patcher could not open the file for read. Is the game running?",
-                    "Patcher Error",
-                    OK, Error);
-
-                Environment.Exit(0);
+                MsgBoxHelpers.Error("Steam is not currently installed, or its library folders could not be detected.");
+                await this.ConfirmManualPatchAsync().ConfigureAwait(false);
             }
-            catch (Exception ex)
+        }
+
+        /// <summary>
+        /// Requests confirmation from the user as to whether or not they would like to proceed with manual .PAK
+        /// loading, and if they accept then proceeds. If the user declines, the application exits.
+        /// </summary>
+        private async Task ConfirmManualPatchAsync()
+        {
+            await MsgBoxHelpers.ConfirmYesNo("Would you like to search for the .PAK file manually?",
+                yes: async () => await this.PatchManualPakFileAsync().ConfigureAwait(false),
+                no: () => Environment.Exit(0)
+            ).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Presents the user with an <see cref="OpenFileDialog"/> to manually find a .PAK file.
+        /// </summary>
+        /// <returns>Returns the <see cref="FileInfo"/> associated with the chosen file, or
+        /// <see langword="null"/>.</returns>
+        private FileInfo ManuallyFindPakFile()
+        {
+            ManualResetEvent reset    = new ManualResetEvent(false);
+            DialogResult     result   = DialogResult.None;
+            string           filename = String.Empty;
+
+            Thread thread = new Thread(() =>
             {
-                StackTrace stack = new StackTrace(ex, true);
-                StackFrame frame = stack.GetFrame(stack.FrameCount - 1);
-                int        line  = frame.GetFileLineNumber();
-                int        col   = frame.GetFileColumnNumber();
-                string     file  = Path.GetFileNameWithoutExtension(frame.GetFileName()).ToUpper();
+                OpenFileDialog dialog = new OpenFileDialog
+                {
+                    Title       = $"Open {PakFileName}",
+                    Filter      = $"{PakFileName}|{PakFileName}",
+                    Multiselect = false
+                };
 
-                MessageBox.Show("The patcher encountered an error while patching. Quote this exception ID:\n\n" +
-                                $"{ex.GetType().Name.ToUpper()}_{file}_{line}:{col}",
-                    "Patcher Error",
-                    OK, Error);
+                result   = dialog.ShowDialog();
+                filename = dialog.FileName;
+                reset.Set();
+            });
 
-                Environment.Exit(0);
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            return result == DialogResult.OK ? new FileInfo(filename) : null;
+        }
+
+        /// <summary>
+        /// Runs <see cref="ManuallyFindPakFile"/> and asynchronously runs <see cref="PatchAsync"/>.
+        /// </summary>
+        private async Task PatchManualPakFileAsync()
+        {
+            FileInfo pakFile = this.ManuallyFindPakFile();
+            await this.PatchAsync(pakFile).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Asynchronously runs the patching process on the specified file.
+        /// </summary>
+        /// <param name="pakFile">The <see cref="FileInfo"/> associated with the .PAK file.</param>
+        private async Task PatchAsync(FileInfo pakFile)
+        {
+            if (pakFile == null || !pakFile.Exists)
+            {
+                MsgBoxHelpers.Error(".PAK file could not be found. The patcher cannot continue.",
+                    callback: () => Environment.Exit(0));
+                return;
             }
+
+            await using Stream stream = File.Open(pakFile.FullName, FileMode.Open);
+
+            bool changedA = PatchByte(stream, 0x1E302110);
+            bool changedB = PatchByte(stream, 0x1E2F52D0);
+
+            stream.Close();
+
+            if (changedA || changedB)
+            {
+                MsgBoxHelpers.Info("Patch successful!", "Done", () => Environment.Exit(0));
+            }
+            else
+            {
+                MsgBoxHelpers.Info("Game is already patched!", "Patch Skipped", () => Environment.Exit(0));
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously patches the game found in the Steam library.
+        /// </summary>
+        /// <param name="app">The <see cref="SteamApp"/> instance.</param>
+        private async Task PatchSteamVersionAsync(SteamApp app)
+        {
+            if (!app.InstallDirectory.Exists)
+            {
+                MsgBoxHelpers.Error($"{app.Name} has manifest file, but install directory does not exist.");
+                await this.ConfirmManualPatchAsync().ConfigureAwait(false);
+                return;
+            }
+
+            await this.PatchAsync
+                       (new FileInfo(Path.GetFullPath($"{app.InstallDirectory}/MCC/Content/Paks/{PakFileName}")))
+                      .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -155,70 +179,6 @@ namespace HaloMCCForgePatcher
             stream.Position = offset;
             stream.WriteByte(0x27);
             return true;
-        }
-
-        /// <summary>
-        /// Gets the pak file to patch.
-        /// </summary>
-        /// <param name="installPath">The Halo install path.</param>
-        /// <returns>Returns the path to the Pak file.</returns>
-        private static string GetPakFile(string installPath)
-        {
-            char dir = Path.DirectorySeparatorChar;
-            return Path.GetFullPath($"{installPath}{dir}MCC{dir}Content{dir}Paks{dir}MCC-WindowsNoEditor.pak");
-        }
-
-        /// <summary>
-        /// Gets the potential location at which Halo MCC might be installed, given a specific SteamApps path.
-        /// </summary>
-        /// <param name="steamApps">The SteamApps path.</param>
-        /// <returns>Returns the potential Halo MCC path.</returns>
-        private static string GetPotentialInstallDirectory(string steamApps)
-        {
-            char dir = Path.DirectorySeparatorChar;
-            return Path.GetFullPath($"{steamApps}{dir}common{dir}Halo The Master Chief Collection");
-        }
-
-        /// <summary>
-        /// Gets the potential manifest file for Halo MCC given a specific library folder.
-        /// </summary>
-        /// <param name="path">The library folder.</param>
-        /// <returns>Returns the potential AppManifest file path.</returns>
-        private static string GetPotentialManifestFile(string path)
-        {
-            char dir = Path.DirectorySeparatorChar;
-            return Path.GetFullPath($"{path}{dir}appmanifest_{HaloAppId}.acf");
-        }
-
-        /// <summary>
-        /// Gets the SteamApps folder for a particular library folder.
-        /// </summary>
-        /// <param name="path">The library folder.</param>
-        /// <returns>Returns the SteamApps folder.</returns>
-        private static string GetSteamAppsFolder(string path)
-        {
-            char dir = Path.DirectorySeparatorChar;
-            return Path.GetFullPath($"{path}{dir}steamapps{dir}");
-        }
-
-        /// <summary>
-        /// Gets the install directory.
-        /// </summary>
-        /// <returns></returns>
-        private static string GetSteamInstallPath()
-        {
-            RegistryKey key  = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Valve\Steam");
-            string      path = (key?.GetValue("InstallPath", String.Empty).ToString() ?? String.Empty).Trim();
-
-            if (!String.IsNullOrWhiteSpace(path))
-            {
-                return path;
-            }
-
-            key  = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Valve\Steam");
-            path = (key?.GetValue("SteamPath", String.Empty).ToString() ?? String.Empty).Trim();
-
-            return Path.GetFullPath(path);
         }
 
         #endregion
