@@ -61,13 +61,13 @@ namespace HaloMCCForgePatcher
                 }
                 else
                 {
-                    MsgBoxHelpers.Error("Halo is not currently installed via Steam.");
+                    MsgBoxHelpers.Error(Resources.HaloNotInstalledViaSteam);
                     await this.ConfirmManualPatchAsync().ConfigureAwait(false);
                 }
             }
             else
             {
-                MsgBoxHelpers.Error("Steam is not currently installed, or its library folders could not be detected.");
+                MsgBoxHelpers.Error(Resources.SteamNotInstalled);
                 await this.ConfirmManualPatchAsync().ConfigureAwait(false);
             }
         }
@@ -92,7 +92,7 @@ namespace HaloMCCForgePatcher
         /// otherwise.</returns>
         private bool ConfirmBackup()
         {
-            return MsgBoxHelpers.ConfirmYesNo("Would you like to create a backup?",
+            return MsgBoxHelpers.ConfirmYesNo(Resources.ConfirmBackup,
                 yes: () => true,
                 no: () => { } // do nothing
             );
@@ -104,7 +104,7 @@ namespace HaloMCCForgePatcher
         /// </summary>
         private async Task ConfirmManualPatchAsync()
         {
-            await MsgBoxHelpers.ConfirmYesNo("Would you like to search for the .PAK file manually?",
+            await MsgBoxHelpers.ConfirmYesNo(Resources.ConfirmPakFileSearch,
                 yes: async () => await this.PatchManualPakFileAsync().ConfigureAwait(false),
                 no: () => Environment.Exit(0)
             ).ConfigureAwait(false);
@@ -145,8 +145,8 @@ namespace HaloMCCForgePatcher
             {
                 OpenFileDialog dialog = new OpenFileDialog
                 {
-                    Title       = $"Open {PakFileName}",
-                    Filter      = $"{PakFileName}|{PakFileName}",
+                    Title       = String.Format(Resources.OpenFileName, PakFileName),
+                    Filter      = $@"{PakFileName}|{PakFileName}",
                     Multiselect = false
                 };
 
@@ -179,7 +179,7 @@ namespace HaloMCCForgePatcher
         {
             if (pakFile == null || !pakFile.Exists)
             {
-                MsgBoxHelpers.Error(".PAK file could not be found. The patcher cannot continue.",
+                MsgBoxHelpers.Error(Resources.PakFileNotFound,
                     callback: () => Environment.Exit(0));
                 return;
             }
@@ -188,7 +188,7 @@ namespace HaloMCCForgePatcher
 
             if (this.ConfirmPatchNeeded(stream))
             {
-                MsgBoxHelpers.Info("Game is already patched!", "Patch Skipped", () => Environment.Exit(0));
+                MsgBoxHelpers.Info(Resources.GameAlreadyPatched, Resources.PatchSkipped, () => Environment.Exit(0));
                 return;
             }
 
@@ -207,7 +207,7 @@ namespace HaloMCCForgePatcher
                                       {
                                           progressForm.PercentageProgressBar.Value = (int) Math.Floor(percentage);
                                           progressForm.Text =
-                                              $"Creating backup ({percentage:0.0}%)";
+                                              String.Format(Resources.CreatingBackupPercentage, percentage);
 
                                           Application.DoEvents();
                                       })
@@ -221,7 +221,7 @@ namespace HaloMCCForgePatcher
             stream.Close();
             stream.Dispose();
 
-            MsgBoxHelpers.Info("Patch successful!", "Done", () => Environment.Exit(0));
+            MsgBoxHelpers.Info(Resources.PatchSuccessful, Resources.Done, () => Environment.Exit(0));
         }
 
         /// <summary>
@@ -232,13 +232,13 @@ namespace HaloMCCForgePatcher
         {
             if (!app.InstallDirectory.Exists)
             {
-                MsgBoxHelpers.Error($"{app.Name} has manifest file, but install directory does not exist.");
+                MsgBoxHelpers.Error(String.Format(Resources.ManifestButNoInstall, app.Name));
                 await this.ConfirmManualPatchAsync().ConfigureAwait(false);
                 return;
             }
 
             await this.PatchAsync
-                       (new FileInfo(Path.GetFullPath($"{app.InstallDirectory}/MCC/Content/Paks/{PakFileName}")))
+                       (new FileInfo(Path.GetFullPath($@"{app.InstallDirectory}/MCC/Content/Paks/{PakFileName}")))
                       .ConfigureAwait(false);
         }
 

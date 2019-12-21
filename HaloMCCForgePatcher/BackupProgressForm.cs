@@ -2,6 +2,7 @@
 {
     #region Using Directives
 
+    using System;
     using System.Drawing;
     using System.Windows.Forms;
     using Helpers;
@@ -13,7 +14,7 @@
         public BackupProgressForm()
         {
             this.ClientSize      = new Size(305, 40);
-            this.Text            = "Creating backup";
+            this.Text            = String.Format(Resources.CreatingBackupPercentage, 0.0);
             this.StartPosition   = FormStartPosition.CenterScreen;
             this.Icon            = Resources.HaloMCC_v1;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -32,8 +33,7 @@
             this.Closing += (sender, args) =>
             {
                 args.Cancel = !MsgBoxHelpers.ConfirmYesNo(
-                    "Are you sure you want to cancel the backup and proceed with patching?",
-                    "Confirm Backup Cancel",
+                    Resources.ConfirmBackupCancel, Resources.ConfirmBackupCancelTitle,
                     () =>
                     {
                         FileHelpers.CancelBackup();

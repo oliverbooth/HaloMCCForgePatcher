@@ -14,7 +14,7 @@
         /// </summary>
         private const string DefaultTitle = @"Halo MCC Forge Patcher";
 
-        public static T ConfirmYesNo<T>(string text, string title = "", Func<T> yes = null, Action no = null)
+        public static T ConfirmYesNo<T>(string text, string title = @"", Func<T> yes = null, Action no = null)
         {
             if (String.IsNullOrWhiteSpace(title))
             {

@@ -121,4 +121,46 @@
   <data name="HaloMCC_v1" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>HaloMCC-v1.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="CreatingBackupPercentage" xml:space="preserve">
+    <value>Creating backup ({0:0.0}%)</value>
+  </data>
+  <data name="ConfirmBackupCancel" xml:space="preserve">
+    <value>Are you sure you want to cancel the backup and proceed with patching?</value>
+  </data>
+  <data name="ConfirmBackupCancelTitle" xml:space="preserve">
+    <value>Confirm Backup Cancel</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="GameAlreadyPatched" xml:space="preserve">
+    <value>Game is already patched!</value>
+  </data>
+  <data name="PakFileNotFound" xml:space="preserve">
+    <value>.PAK file could not be found. The patcher cannot continue.</value>
+  </data>
+  <data name="PatchSkipped" xml:space="preserve">
+    <value>Patch Skipped</value>
+  </data>
+  <data name="PatchSuccessful" xml:space="preserve">
+    <value>Patch successful!</value>
+  </data>
+  <data name="OpenFileName" xml:space="preserve">
+    <value>Open {0}</value>
+  </data>
+  <data name="ConfirmBackup" xml:space="preserve">
+    <value>Would you like to create a backup?</value>
+  </data>
+  <data name="ConfirmPakFileSearch" xml:space="preserve">
+    <value>Would you like to search for the .PAK file manually?</value>
+  </data>
+  <data name="HaloNotInstalledViaSteam" xml:space="preserve">
+    <value>Halo is not currently installed via Steam.</value>
+  </data>
+  <data name="ManifestButNoInstall" xml:space="preserve">
+    <value>{0} has manifest file, but install directory does not exist.</value>
+  </data>
+  <data name="SteamNotInstalled" xml:space="preserve">
+    <value>Steam is not currently installed, or its library folders could not be detected.</value>
+  </data>
 </root>

@@ -23,7 +23,7 @@
             cancelBackupCreation = false;
             sourcePath           = Path.GetFullPath(sourcePath);
 
-            string destinationPath = Path.GetFullPath($"{sourcePath}.bak");
+            string destinationPath = Path.GetFullPath($@"{sourcePath}.bak");
 
             if (!File.Exists(sourcePath))
             {

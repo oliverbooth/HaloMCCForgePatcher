@@ -49,7 +49,7 @@ namespace HaloMCCForgePatcher.Models
             const string  keyName = @"SOFTWARE\Valve\Steam";
 
             RegistryKey key = Registry.LocalMachine.OpenSubKey(keyName);
-            string path = (key?.GetValue("InstallPath", String.Empty)
+            string path = (key?.GetValue(@"InstallPath", String.Empty)
                                .ToString() ?? String.Empty).Trim();
 
             if (!String.IsNullOrWhiteSpace(path) && Directory.Exists(path))
@@ -59,7 +59,7 @@ namespace HaloMCCForgePatcher.Models
             else
             {
                 key = Registry.CurrentUser.OpenSubKey(keyName);
-                path = (key?.GetValue("SteamPath", String.Empty)
+                path = (key?.GetValue(@"SteamPath", String.Empty)
                             .ToString() ?? String.Empty).Trim();
 
                 directory = String.IsNullOrWhiteSpace(path) ? null : new DirectoryInfo(path);
@@ -79,7 +79,7 @@ namespace HaloMCCForgePatcher.Models
             IEnumerable<DirectoryInfo> libraryFolders = await this.GetLibraryFoldersAsync()
                                                                   .ConfigureAwait(false);
 
-            return libraryFolders.Select(f => new FileInfo($"{f}/steamapps/appmanifest_{appId}.acf"))
+            return libraryFolders.Select(f => new FileInfo($@"{f}/steamapps/appmanifest_{appId}.acf"))
                                  .Any(f => f.Exists);
         }
 
@@ -100,9 +100,9 @@ namespace HaloMCCForgePatcher.Models
 
             DirectoryInfo libraryFolder =
                 (await this.GetLibraryFoldersAsync().ConfigureAwait(false))
-               .FirstOrDefault(f => File.Exists(Path.GetFullPath($"{f}{relativePath}")));
+               .FirstOrDefault(f => File.Exists(Path.GetFullPath($@"{f}{relativePath}")));
 
-            using StreamReader reader = new StreamReader(Path.GetFullPath($"{libraryFolder}{relativePath}"));
+            using StreamReader reader = new StreamReader(Path.GetFullPath($@"{libraryFolder}{relativePath}"));
 
             string   contents = await reader.ReadToEndAsync().ConfigureAwait(false);
             SteamApp app      = VdfConvert.Deserialize(contents).Value.ToJson().ToObject<SteamApp>();
@@ -128,7 +128,7 @@ namespace HaloMCCForgePatcher.Models
                 this.InstallDirectory
             };
 
-            string vdfPath = $"{this.InstallDirectory}/steamapps/libraryfolders.vdf";
+            string vdfPath = $@"{this.InstallDirectory}/steamapps/libraryfolders.vdf";
             using (StreamReader reader = new StreamReader(Path.GetFullPath(vdfPath)))
             {
                 string contents = await reader.ReadToEndAsync().ConfigureAwait(false);
