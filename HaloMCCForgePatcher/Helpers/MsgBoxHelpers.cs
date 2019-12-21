@@ -14,14 +14,17 @@
         /// </summary>
         private const string DefaultTitle = @"Halo MCC Forge Patcher";
 
-        public static T ConfirmYesNo<T>(string text, string title = @"", Func<T> yes = null, Action no = null)
+        public static T ConfirmYesNo<T>(string            text, string title = @"", Func<T> yes = null,
+                                        Action            no      = null,
+                                        MessageBoxButtons buttons = MessageBoxButtons.YesNo,
+                                        MessageBoxIcon    icon    = MessageBoxIcon.Question)
         {
             if (String.IsNullOrWhiteSpace(title))
             {
                 title = DefaultTitle;
             }
 
-            DialogResult result = MessageBox.Show(text, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult result = MessageBox.Show(text, title, buttons, icon);
 
             switch (result)
             {

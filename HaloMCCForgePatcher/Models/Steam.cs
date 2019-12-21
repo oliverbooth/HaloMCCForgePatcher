@@ -79,8 +79,7 @@ namespace HaloMCCForgePatcher.Models
             IEnumerable<DirectoryInfo> libraryFolders = await this.GetLibraryFoldersAsync()
                                                                   .ConfigureAwait(false);
 
-            return libraryFolders.Select(f => new FileInfo($@"{f}/steamapps/appmanifest_{appId}.acf"))
-                                 .Any(f => f.Exists);
+            return libraryFolders.Select(f => GetManifestFile(f, appId)).Any(f => f.Exists);
         }
 
         /// <summary>
@@ -91,8 +90,6 @@ namespace HaloMCCForgePatcher.Models
         /// <returns>Returns an instance of <see cref="SteamApp"/>, or <see langword="null"/>.</returns>
         public async Task<SteamApp> GetAppAsync(uint appId)
         {
-            string relativePath = $"/steamapps/appmanifest_{appId}.acf";
-
             if (!await this.IsAppInstalledAsync(appId).ConfigureAwait(false))
             {
                 return null;
@@ -100,9 +97,9 @@ namespace HaloMCCForgePatcher.Models
 
             DirectoryInfo libraryFolder =
                 (await this.GetLibraryFoldersAsync().ConfigureAwait(false))
-               .FirstOrDefault(f => File.Exists(Path.GetFullPath($@"{f}{relativePath}")));
+               .First(f => GetManifestFile(f, appId).Exists);
 
-            using StreamReader reader = new StreamReader(Path.GetFullPath($@"{libraryFolder}{relativePath}"));
+            using StreamReader reader = new StreamReader(GetManifestFile(libraryFolder, appId).ToString());
 
             string   contents = await reader.ReadToEndAsync().ConfigureAwait(false);
             SteamApp app      = VdfConvert.Deserialize(contents).Value.ToJson().ToObject<SteamApp>();
@@ -128,7 +125,7 @@ namespace HaloMCCForgePatcher.Models
                 this.InstallDirectory
             };
 
-            string vdfPath = $@"{this.InstallDirectory}/steamapps/libraryfolders.vdf";
+            string vdfPath = Path.Combine(this.InstallDirectory.ToString(), @"steamapps", @"libraryfolders.vdf");
             using (StreamReader reader = new StreamReader(Path.GetFullPath(vdfPath)))
             {
                 string contents = await reader.ReadToEndAsync().ConfigureAwait(false);
@@ -139,6 +136,12 @@ namespace HaloMCCForgePatcher.Models
             }
 
             return libraryFolders;
+        }
+
+        private static FileInfo GetManifestFile(DirectoryInfo libraryFolder, uint appId)
+        {
+            string path = Path.Combine(libraryFolder.ToString(), @"steamapps", $@"appmanifest_{appId}.acf");
+            return new FileInfo(Path.GetFullPath(path));
         }
 
         #endregion

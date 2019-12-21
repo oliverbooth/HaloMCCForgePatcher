@@ -151,8 +151,8 @@
   <data name="ConfirmBackup" xml:space="preserve">
     <value>Would you like to create a backup?</value>
   </data>
-  <data name="ConfirmPakFileSearch" xml:space="preserve">
-    <value>Would you like to search for the .PAK file manually?</value>
+  <data name="ConfirmHaloInstallSearch" xml:space="preserve">
+    <value>Would you like to search for the Halo installation manually?</value>
   </data>
   <data name="HaloNotInstalledViaSteam" xml:space="preserve">
     <value>Halo is not currently installed via Steam.</value>
@@ -162,5 +162,23 @@
   </data>
   <data name="SteamNotInstalled" xml:space="preserve">
     <value>Steam is not currently installed, or its library folders could not be detected.</value>
+  </data>
+  <data name="HaloMCCTitle" xml:space="preserve">
+    <value>Halo: Master Chief Collection</value>
+  </data>
+  <data name="ConfirmPatchCancel" xml:space="preserve">
+    <value>Are you sure you want to cancel the patch?</value>
+  </data>
+  <data name="InvalidFolder" xml:space="preserve">
+    <value>The specified folder is not a Halo installation.</value>
+  </data>
+  <data name="UntestedVersion" xml:space="preserve">
+    <value>UNTESTED VERSION
+
+Your Halo installation (version {0}) is untested and this patcher is not guaranteed to work.
+Proceeding with patch may cause unintended side effects.
+The next step will confirm if you want to create a backup. It is highly recommended you do so.
+
+Would you like to continue with patching?</value>
   </data>
 </root>

@@ -88,11 +88,20 @@ namespace HaloMCCForgePatcher {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Would you like to search for the .PAK file manually?.
+        ///   Looks up a localized string similar to Would you like to search for the Halo installation manually?.
         /// </summary>
-        internal static string ConfirmPakFileSearch {
+        internal static string ConfirmHaloInstallSearch {
             get {
-                return ResourceManager.GetString("ConfirmPakFileSearch", resourceCulture);
+                return ResourceManager.GetString("ConfirmHaloInstallSearch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to cancel the patch?.
+        /// </summary>
+        internal static string ConfirmPatchCancel {
+            get {
+                return ResourceManager.GetString("ConfirmPatchCancel", resourceCulture);
             }
         }
         
@@ -134,11 +143,29 @@ namespace HaloMCCForgePatcher {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Halo: Master Chief Collection.
+        /// </summary>
+        internal static string HaloMCCTitle {
+            get {
+                return ResourceManager.GetString("HaloMCCTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Halo is not currently installed via Steam..
         /// </summary>
         internal static string HaloNotInstalledViaSteam {
             get {
                 return ResourceManager.GetString("HaloNotInstalledViaSteam", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The specified folder is not a Halo installation..
+        /// </summary>
+        internal static string InvalidFolder {
+            get {
+                return ResourceManager.GetString("InvalidFolder", resourceCulture);
             }
         }
         
@@ -193,6 +220,21 @@ namespace HaloMCCForgePatcher {
         internal static string SteamNotInstalled {
             get {
                 return ResourceManager.GetString("SteamNotInstalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UNTESTED VERSION
+        ///
+        ///Your Halo installation (version {0}) is untested and this patcher is not guaranteed to work.
+        ///Proceeding with patch may cause unintended side effects.
+        ///The next step will confirm if you want to create a backup. It is highly recommended you do so.
+        ///
+        ///Would you like to continue with patching?.
+        /// </summary>
+        internal static string UntestedVersion {
+            get {
+                return ResourceManager.GetString("UntestedVersion", resourceCulture);
             }
         }
     }

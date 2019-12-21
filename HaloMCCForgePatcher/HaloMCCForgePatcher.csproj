@@ -6,7 +6,7 @@
         <LangVersion>8.0</LangVersion>
         <UseWindowsForms>true</UseWindowsForms>
         <ApplicationIcon>HaloMCC-v1.ico</ApplicationIcon>
-        <Version>2.1.0</Version>
+        <Version>3.0.0</Version>
         <Authors>Oliver Booth</Authors>
         <Company>Oliver Booth</Company>
         <Product>Halo MCC Forge Patcher</Product>

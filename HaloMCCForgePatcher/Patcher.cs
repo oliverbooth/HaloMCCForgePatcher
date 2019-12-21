@@ -15,6 +15,9 @@ namespace HaloMCCForgePatcher
 
     #endregion
 
+    /// <summary>
+    /// Represents a class which implements the patcher.
+    /// </summary>
     public class Patcher
     {
         #region Fields
@@ -104,8 +107,8 @@ namespace HaloMCCForgePatcher
         /// </summary>
         private async Task ConfirmManualPatchAsync()
         {
-            await MsgBoxHelpers.ConfirmYesNo(Resources.ConfirmPakFileSearch,
-                yes: async () => await this.PatchManualPakFileAsync().ConfigureAwait(false),
+            await MsgBoxHelpers.ConfirmYesNo(Resources.ConfirmHaloInstallSearch,
+                yes: async () => await this.PatchGameManuallyAsync().ConfigureAwait(false),
                 no: () => Environment.Exit(0)
             ).ConfigureAwait(false);
         }
@@ -131,53 +134,79 @@ namespace HaloMCCForgePatcher
         }
 
         /// <summary>
-        /// Presents the user with an <see cref="OpenFileDialog"/> to manually find a .PAK file.
+        /// Presents the user with a <see cref="FolderBrowserDialog"/> to manually find their Halo installation.
         /// </summary>
-        /// <returns>Returns the <see cref="FileInfo"/> associated with the chosen file, or
+        /// <returns>Returns the <see cref="HaloInstallation"/> associated with the chosen directory, or
         /// <see langword="null"/>.</returns>
-        private FileInfo ManuallyFindPakFile()
+        private HaloInstallation ManuallyFindHaloInstallation()
         {
-            ManualResetEvent reset    = new ManualResetEvent(false);
-            DialogResult     result   = DialogResult.None;
-            string           filename = String.Empty;
+            string path = String.Empty;
 
             Thread thread = new Thread(() =>
             {
-                OpenFileDialog dialog = new OpenFileDialog
+                FolderBrowserDialog dialog = new FolderBrowserDialog
                 {
-                    Title       = String.Format(Resources.OpenFileName, PakFileName),
-                    Filter      = $@"{PakFileName}|{PakFileName}",
-                    Multiselect = false
+                    Description  = Resources.HaloMCCTitle,
+                    SelectedPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
                 };
 
-                result   = dialog.ShowDialog();
-                filename = dialog.FileName;
-                reset.Set();
+                while (true)
+                {
+                    DialogResult result = dialog.ShowDialog();
+                    if (result == DialogResult.Cancel)
+                    {
+                        bool cancel = MsgBoxHelpers.ConfirmYesNo(Resources.ConfirmPatchCancel,
+                            yes: () => true,
+                            no: () => { } // do nothing
+                        );
+
+                        if (cancel)
+                        {
+                            Environment.Exit(0);
+                        }
+                    }
+                    else if (result == DialogResult.OK)
+                    {
+                        if (Directory.Exists(dialog.SelectedPath))
+                        {
+                            HaloInstallation halo = new HaloInstallation(new DirectoryInfo(dialog.SelectedPath));
+                            if (halo.GetGameExecutablePath().Exists && halo.GetPakFilePath().Exists)
+                            {
+                                break;
+                            }
+                        }
+
+                        MsgBoxHelpers.Error(Resources.InvalidFolder);
+                    }
+                }
+
+                path = dialog.SelectedPath;
             });
 
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
 
-            return result == DialogResult.OK ? new FileInfo(filename) : null;
+            return new HaloInstallation(new DirectoryInfo(path));
         }
 
         /// <summary>
-        /// Runs <see cref="ManuallyFindPakFile"/> and asynchronously runs <see cref="PatchAsync"/>.
+        /// Runs <see cref="ManuallyFindHaloInstallation"/> and asynchronously runs <see cref="PatchAsync"/>.
         /// </summary>
-        private async Task PatchManualPakFileAsync()
+        private async Task PatchGameManuallyAsync()
         {
-            FileInfo pakFile = this.ManuallyFindPakFile();
-            await this.PatchAsync(pakFile).ConfigureAwait(false);
+            await this.PatchAsync(this.ManuallyFindHaloInstallation()).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Asynchronously runs the patching process on the specified file.
         /// </summary>
-        /// <param name="pakFile">The <see cref="FileInfo"/> associated with the .PAK file.</param>
-        private async Task PatchAsync(FileInfo pakFile)
+        /// <param name="halo">The Halo installation.</param>
+        private async Task PatchAsync(HaloInstallation halo)
         {
-            if (pakFile == null || !pakFile.Exists)
+            FileInfo pakFile = halo.GetPakFilePath();
+
+            if (!(pakFile?.Exists ?? false))
             {
                 MsgBoxHelpers.Error(Resources.PakFileNotFound,
                     callback: () => Environment.Exit(0));
@@ -186,10 +215,27 @@ namespace HaloMCCForgePatcher
 
             Stream stream = File.Open(pakFile.FullName, FileMode.Open);
 
-            if (!this.ConfirmPatchNeeded(stream))
+            if (halo.GetGameVersion() > new Version(1, 1270, 0, 0))
             {
-                MsgBoxHelpers.Info(Resources.GameAlreadyPatched, Resources.PatchSkipped, () => Environment.Exit(0));
-                return;
+                bool abort = !MsgBoxHelpers.ConfirmYesNo(
+                    String.Format(Resources.UntestedVersion, halo.GetGameVersion()),
+                    icon: MessageBoxIcon.Warning,
+                    yes: () => true,
+                    no: () => { } // internally returns default(T)
+                );
+
+                if (abort)
+                {
+                    Environment.Exit(0);
+                }
+            }
+            else
+            {
+                if (!this.ConfirmPatchNeeded(stream))
+                {
+                    MsgBoxHelpers.Info(Resources.GameAlreadyPatched, Resources.PatchSkipped, () => Environment.Exit(0));
+                    return;
+                }
             }
 
             if (this.ConfirmBackup())
@@ -237,9 +283,7 @@ namespace HaloMCCForgePatcher
                 return;
             }
 
-            await this.PatchAsync
-                       (new FileInfo(Path.GetFullPath($@"{app.InstallDirectory}/MCC/Content/Paks/{PakFileName}")))
-                      .ConfigureAwait(false);
+            await this.PatchAsync(new HaloInstallation(app.InstallDirectory)).ConfigureAwait(false);
         }
 
         #endregion
