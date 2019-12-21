@@ -5,6 +5,7 @@ namespace HaloMCCForgePatcher
     #region Using Directives
 
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
@@ -17,6 +18,16 @@ namespace HaloMCCForgePatcher
     public class Patcher
     {
         #region Fields
+
+        /// <summary>
+        /// The dictionary of bytes to patch.
+        /// </summary>
+        private readonly Dictionary<long, byte> patchedBytes = new Dictionary<long, byte>
+        {
+            // {offset, byte}
+            {0x1E302110, 0x27},
+            {0x1E2F52D0, 0x27}
+        };
 
         /// <summary>
         /// The filename of the PAK file to patch.
@@ -62,6 +73,32 @@ namespace HaloMCCForgePatcher
         }
 
         /// <summary>
+        /// Patches the bytes at the offsets set in <see cref="patchedBytes"/>.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        private void ApplyPatch(Stream stream)
+        {
+            foreach ((long offset, byte @byte) in this.patchedBytes)
+            {
+                stream.Position = offset;
+                stream.WriteByte(@byte);
+            }
+        }
+
+        /// <summary>
+        /// Requests confirmation from the user as to whether or not they would like to create a backup.
+        /// </summary>
+        /// <returns>Returns <see langword="true"/> if the user selected Yes, <see langword="false"/>
+        /// otherwise.</returns>
+        private bool ConfirmBackup()
+        {
+            return MsgBoxHelpers.ConfirmYesNo("Would you like to create a backup?",
+                yes: () => true,
+                no: () => { } // do nothing
+            );
+        }
+
+        /// <summary>
         /// Requests confirmation from the user as to whether or not they would like to proceed with manual .PAK
         /// loading, and if they accept then proceeds. If the user declines, the application exits.
         /// </summary>
@@ -71,6 +108,26 @@ namespace HaloMCCForgePatcher
                 yes: async () => await this.PatchManualPakFileAsync().ConfigureAwait(false),
                 no: () => Environment.Exit(0)
             ).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Determines whether patching is necessary.
+        /// </summary>
+        /// <param name="stream">The stream to read.</param>
+        /// <returns>Returns <see langword="true"/> if the patch is necessary, <see langword="false"/>
+        /// otherwise.</returns>
+        private bool ConfirmPatchNeeded(Stream stream)
+        {
+            foreach ((long offset, byte @byte) in this.patchedBytes)
+            {
+                stream.Position = offset;
+                if (stream.ReadByte() != @byte)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -127,21 +184,44 @@ namespace HaloMCCForgePatcher
                 return;
             }
 
-            await using Stream stream = File.Open(pakFile.FullName, FileMode.Open);
+            Stream stream = File.Open(pakFile.FullName, FileMode.Open);
 
-            bool changedA = PatchByte(stream, 0x1E302110);
-            bool changedB = PatchByte(stream, 0x1E2F52D0);
-
-            stream.Close();
-
-            if (changedA || changedB)
-            {
-                MsgBoxHelpers.Info("Patch successful!", "Done", () => Environment.Exit(0));
-            }
-            else
+            if (this.ConfirmPatchNeeded(stream))
             {
                 MsgBoxHelpers.Info("Game is already patched!", "Patch Skipped", () => Environment.Exit(0));
+                return;
             }
+
+            if (this.ConfirmBackup())
+            {
+                // must close stream for backup to take place
+                stream.Close();
+                stream.Dispose();
+
+                BackupProgressForm progressForm = new BackupProgressForm();
+                progressForm.Show();
+                progressForm.BringToFront();
+
+                await FileHelpers.CreateBackupAsync(pakFile.FullName,
+                                      percentage =>
+                                      {
+                                          progressForm.PercentageProgressBar.Value = (int) Math.Floor(percentage);
+                                          progressForm.Text =
+                                              $"Creating backup ({percentage:0.0}%)";
+
+                                          Application.DoEvents();
+                                      })
+                                 .ConfigureAwait(false);
+
+                // reopen stream for patching
+                stream = File.Open(pakFile.FullName, FileMode.Open);
+            }
+
+            this.ApplyPatch(stream);
+            stream.Close();
+            stream.Dispose();
+
+            MsgBoxHelpers.Info("Patch successful!", "Done", () => Environment.Exit(0));
         }
 
         /// <summary>
@@ -160,25 +240,6 @@ namespace HaloMCCForgePatcher
             await this.PatchAsync
                        (new FileInfo(Path.GetFullPath($"{app.InstallDirectory}/MCC/Content/Paks/{PakFileName}")))
                       .ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Patches the byte at the specified offset.
-        /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns>Returns whether or not the byte was patched.</returns>
-        private static bool PatchByte(Stream stream, int offset)
-        {
-            stream.Position = offset;
-            if (stream.ReadByte() == 0x27)
-            {
-                return false;
-            }
-
-            stream.Position = offset;
-            stream.WriteByte(0x27);
-            return true;
         }
 
         #endregion
