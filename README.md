@@ -20,8 +20,5 @@ If the patcher fails to find the Steam library version of the game, it will prom
 
 If you purchased *Halo: The Master Chief Collection* from the Microsoft Store, you will need to run UWPDumper to extract the game files in order for the patcher to work. There is a guide [here](https://www.reddit.com/r/halomods/comments/e5tsmu/dumping_the_ms_store_version_of_halo_mcc/) which explains this process in detail.
 
-## Important notes
-This patcher does not create a backup of your .PAK file. Please be sure you have a safe copy of the original available should you wish to revert this patch.
-
 ## Disclaimer
 This patcher is provided as is, and by using it you accept liability should this tool behave unexpectedly.
