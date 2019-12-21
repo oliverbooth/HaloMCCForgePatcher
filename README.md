@@ -1,6 +1,8 @@
 # HaloMCCForgePatcher
-
 A patcher to enable Forge World in Halo: MCC (PC Edition)
+
+## What does it do?
+It enables the **Create > Forge** option in the game menu, allowing you build your own game maps in Custom games.
 
 ## How does it work?
 HaloMCCForgePatcher works by altering the following 2 bytes in the game file `MCC-WindowsNoEditor.pak`:
