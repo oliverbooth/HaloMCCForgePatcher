@@ -186,7 +186,7 @@ namespace HaloMCCForgePatcher
 
             Stream stream = File.Open(pakFile.FullName, FileMode.Open);
 
-            if (this.ConfirmPatchNeeded(stream))
+            if (!this.ConfirmPatchNeeded(stream))
             {
                 MsgBoxHelpers.Info(Resources.GameAlreadyPatched, Resources.PatchSkipped, () => Environment.Exit(0));
                 return;
