@@ -28,8 +28,8 @@ namespace HaloMCCForgePatcher
         private readonly Dictionary<long, byte> patchedBytes = new Dictionary<long, byte>
         {
             // {offset, byte}
-            {0x1E302110, 0x27},
-            {0x1E2F52D0, 0x27}
+            {0x2FFC72D0, 0x27},
+            {0x2FFD4110, 0x27}
         };
 
         /// <summary>

@@ -7,8 +7,8 @@ It enables the **Create > Forge** option in the game menu, allowing you build yo
 ## How does it work?
 HaloMCCForgePatcher works by altering the following 2 bytes in the game file `MCC-WindowsNoEditor.pak`:
 
-* Offset `0x1E302110` to `0x27`
-* Offset `0x1E2F52D0` to `0x27`
+* Offset `0x2FFC72D0` to `0x27`
+* Offset `0x2FFD4110` to `0x27`
 
 ## How do I use it?
 Just run **HaloMCCForgePatcher.exe** and it will automatically detect Halo from your Steam library, and patch your game instantly.
